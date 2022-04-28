@@ -1,0 +1,114 @@
+name: Encryption build setup
+description: Downloads all the dependencies and caches them between builds
+
+runs:
+  using: composite
+  steps:
+    ########### Core dependencies ###########
+    - name: Setup Go environment and cache Go build
+      uses: actions/setup-go@v2.2.0
+      with:
+        go-version: '1.17'
+
+    - name: Setup .NET environment
+      uses: actions/setup-dotnet@v2
+      with:
+        dotnet-version: '6.0.x'
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: ${{ runner.os }}-go-
+
+    - name: Cache protoc-gen-go
+      id: cache-protoc-gen-go
+      uses: actions/cache@v3
+      with:
+        path: ~/go/bin/protoc-gen-go
+        key: ${{ runner.os }}-cache-protoc-gen-go-v1.27.1
+
+    - name: Install protoc-gen-go
+      if: steps.cache-protoc-gen-go.outputs.cache-hit != 'true'
+      shell: bash
+      run: go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.27.1
+
+    - name: Cache protoc-gen-go-grpc
+      id: cache-protoc-gen-go-grpc
+      uses: actions/cache@v3
+      with:
+        path: ~/go/bin/protoc-gen-go-grpc
+        key: ${{ runner.os }}-cache-protoc-gen-go-grpc-v1.2.0
+
+    - name: Install protoc-gen-go-grpc
+      if: steps.cache-protoc-gen-go-grpc.outputs.cache-hit != 'true'
+      shell: bash
+      run: go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2.0
+
+    - name: Cache grpc-health-probe
+      id: cache-grpc-health-probe
+      uses: actions/cache@v3
+      with:
+        path: ~/go/bin/grpc-health-probe
+        key: ${{ runner.os }}-cache-grpc-health-probe-v0.4.8
+
+    - name: Install grpc-health-probe
+      if: steps.cache-grpc-health-probe.outputs.cache-hit != 'true'
+      shell: bash
+      run: go install github.com/grpc-ecosystem/grpc-health-probe@v0.4.8
+
+    - name: Cache golangci-lint
+      id: cache-golangci-lint
+      uses: actions/cache@v3
+      with:
+        path: ~/go/bin/golangci-lint
+        key: ${{ runner.os }}-cache-golangci-lint-v1.44.2
+
+    - name: Install golangci-lint
+      if: steps.cache-golangci-lint.outputs.cache-hit != 'true'
+      shell: bash
+      run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.44.2
+
+    - name: Cache Protobuf Compiler
+      id: cache-protoc
+      uses: actions/cache@v3
+      with:
+        path: ~/.local/bin/protoc
+        key: ${{ runner.os }}-cache-protoc-v3.19.4
+
+    - name: Install Protobuf Compiler
+      if: steps.cache-protoc.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        PB_REL="https://github.com/protocolbuffers/protobuf/releases"
+        curl -LO $PB_REL/download/v3.19.4/protoc-3.19.4-linux-x86_64.zip
+        unzip protoc-3.19.4-linux-x86_64.zip -d ~/.local
+        export PATH="$PATH:~/.local/bin"
+
+    ########### Premium dependencies ###########
+    - name: Install C dependencies
+      uses: awalsh128/cache-apt-pkgs-action@v1
+      with:
+        packages: build-essential clang libmbedtls-dev
+        version: 20220420
+    
+    - name: Setup python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.9'
+
+    - name: Cache python packages
+      id: cache-pythondeps
+      uses: actions/cache@v3
+      with:
+        path: |
+          ${{ env.pythonLocation }}/lib/python3.9/site-packages/Cryptodome
+        key: ${{ runner.os }}-cache-pythondeps-20220419
+
+    - name: Install python packages
+      if: steps.cache-pythondeps.outputs.cache-hit != 'true'
+      shell: bash
+      run: pip install pycryptodomex
