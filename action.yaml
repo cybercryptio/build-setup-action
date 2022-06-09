@@ -65,12 +65,12 @@ runs:
       uses: actions/cache@v3
       with:
         path: ~/go/bin/golangci-lint
-        key: ${{ runner.os }}-cache-golangci-lint-v1.44.2
+        key: ${{ runner.os }}-cache-golangci-lint-v1.46.2
 
     - name: Install golangci-lint
       if: steps.cache-golangci-lint.outputs.cache-hit != 'true'
       shell: bash
-      run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.44.2
+      run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.46.2
 
     - name: Cache Protobuf Compiler
       id: cache-protoc
